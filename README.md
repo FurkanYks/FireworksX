@@ -1,5 +1,5 @@
 # Fireworks
-Supports the API 4 and latest version of pocketmine.
+adds fireworks to your pocketmine server and makes it run like vanilla.
 
 ![plugin icon](https://github.com/FurkanYks/FireworksX/blob/main/resources/fireworks_icon.png)
 
