@@ -10,7 +10,7 @@ class MoveEvent implements Listener{
 	public const MINIMUM_PITCH = -59;
 	public const MAXIMUM_PITCH = 38;
 	
-	public function onMove(PlayerMoveEvent $event){
+	public function onMove(PlayerMoveEvent $event): void{
 		$player = $event->getPlayer();
 		if(!$player->isGliding()){
 			return;

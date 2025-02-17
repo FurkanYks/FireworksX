@@ -2,6 +2,6 @@ name: FireworksX
 version: 1.0.0
 author: FurkanYks
 main: FurkanYks\Fireworks\Main
-api: 4.10.0
+api: 5.0.0
 description: Add fireworks to your pocketmine server!
 github: https://github.com/FurkanYks

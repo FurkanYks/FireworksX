@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace FurkanYks\Fireworks;
 
+use FurkanYks\Fireworks\FireworkParticleAnimation;
+use FurkanYks\Fireworks\Fireworks;
 use pocketmine\entity\Entity;
 use pocketmine\entity\EntitySizeInfo;
-use pocketmine\network\mcpe\protocol\types\entity\EntityIds;
-use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataCollection;
-
 use pocketmine\entity\Location;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\CompoundTag;
-
 use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\network\mcpe\protocol\types\CacheableNbt;
+use pocketmine\network\mcpe\protocol\types\entity\EntityIds;
+use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataCollection;
 use pocketmine\network\mcpe\protocol\types\LevelSoundEvent;
 
 class FireworksRocket extends Entity
@@ -27,7 +27,20 @@ class FireworksRocket extends Entity
         return EntityIds::FIREWORKS_ROCKET;
     }
 
+    public function getInitialDragMultiplier(): float
+    {
+
+        return 1.0;
+    }
+
+    public function getInitialGravity(): float
+    {
+        return 1.0;
+    }
+
+    /** @var int */
     protected $lifeTime = 0;
+    /** @var Fireworks */
     protected $fireworks;
 
     public function __construct(Location $location, Fireworks $fireworks, ?int $lifeTime = null)
@@ -40,7 +53,7 @@ class FireworksRocket extends Entity
             $this->setLifeTime($lifeTime ?? $fireworks->getRandomizedFlightDuration());
         }
 
-        $location->getWorld()->broadcastPacketToViewers($this->location, LevelSoundEventPacket::nonActorSound(LevelSoundEvent::LAUNCH, $this->location->asVector3(), false));
+        $location->getWorld()->broadcastPacketToViewers($this->location, LevelSoundEventPacket::create(LevelSoundEvent::LAUNCH, $this->location->asVector3(), -1, ":", false, false));
     }
 
     protected function tryChangeMovement(): void
@@ -89,23 +102,25 @@ class FireworksRocket extends Entity
     public function playSounds(): void
     {
         $fireworksTag = $this->fireworks->getNamedTag()->getCompoundTag("Fireworks");
-        if ($fireworksTag === null) {
-            return;
-        }
-        $explosionsTag = $fireworksTag->getListTag("Explosions");
-        if ($explosionsTag === null) {
-            return;
-        }
+        if ($fireworksTag !== null) {
+            $explosionsTag = $fireworksTag->getListTag("Explosions");
 
-        foreach ($explosionsTag->getValue() as $info) {
-            if ($info instanceof CompoundTag) {
-                if ($info->getByte("FireworkType", 0) === Fireworks::TYPE_HUGE_SPHERE) {
-                    $this->getWorld()->broadcastPacketToViewers($this->location, LevelSoundEventPacket::nonActorSound(LevelSoundEvent::LARGE_BLAST, $this->location->asVector3(), false));
-                } else {
-                    $this->getWorld()->broadcastPacketToViewers($this->location, LevelSoundEventPacket::nonActorSound(LevelSoundEvent::BLAST, $this->location->asVector3(), false));
-                }
-                if ($info->getByte("FireworkFlicker", 0) === 1) {
-                    $this->getWorld()->broadcastPacketToViewers($this->location, LevelSoundEventPacket::nonActorSound(LevelSoundEvent::TWINKLE, $this->location->asVector3(), false));
+            if ($explosionsTag === null) {
+                $player = $this->fireworks->getOwningEntity();
+                return;
+            }
+
+            foreach ($explosionsTag->getValue() as $info) {
+                if ($info instanceof CompoundTag) {
+                    if ($info->getByte("FireworkType", 0) === Fireworks::TYPE_HUGE_SPHERE) {
+                        $this->getWorld()->broadcastPacketToViewers($this->location, LevelSoundEventPacket::create(LevelSoundEvent::LARGE_BLAST, $this->location->asVector3(), -1, ":", false, false));
+                    } else {
+                        $this->getWorld()->broadcastPacketToViewers($this->location, LevelSoundEventPacket::create(LevelSoundEvent::BLAST, $this->location->asVector3(), -1, ":", false, false));
+                    }
+
+                    if ($info->getByte("FireworkFlicker", 0) === 1) {
+                        $this->getWorld()->broadcastPacketToViewers($this->location, LevelSoundEventPacket::create(LevelSoundEvent::TWINKLE, $this->location->asVector3(), -1,":", false, false));
+                    }
                 }
             }
         }
@@ -120,12 +135,5 @@ class FireworksRocket extends Entity
     protected function getInitialSizeInfo(): EntitySizeInfo
     {
         return new EntitySizeInfo(0.25, 0.25);
-    }
-
-    public function saveNBT(): CompoundTag
-    {
-        $nbt = parent::saveNBT();
-        $nbt->setTag("Item", $this->fireworks->nbtSerialize());
-        return $nbt;
     }
 }

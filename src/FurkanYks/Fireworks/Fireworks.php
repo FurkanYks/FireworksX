@@ -1,24 +1,20 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace FurkanYks\Fireworks;
 
-use FurkanYks\Fireworks\Session\Session;
-use FurkanYks\Fireworks\Item\Elytra;
+use FurkanYks\Fireworks\FireworksRocket;
 use pocketmine\block\Block;
 use pocketmine\entity\Location;
-
 use pocketmine\item\Item;
 use pocketmine\item\ItemUseResult;
 use pocketmine\math\Vector3;
-
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\ListTag;
 use pocketmine\player\Player;
 
-class Fireworks extends Item
-{
+class Fireworks extends Item {
 
     public const TYPE_SMALL_SPHERE = 0;
     public const TYPE_HUGE_SPHERE = 1;
@@ -26,6 +22,7 @@ class Fireworks extends Item
     public const TYPE_CREEPER_HEAD = 3;
     public const TYPE_BURST = 4;
 
+    //color = chr(dye metadata)
     public const COLOR_BLACK = "\x00";
     public const COLOR_RED = "\x01";
     public const COLOR_DARK_GREEN = "\x02";
@@ -43,18 +40,15 @@ class Fireworks extends Item
     public const COLOR_GOLD = "\x0e";
     public const COLOR_WHITE = "\x0f";
 
-    public function getFlightDuration(): int
-    {
+    public function getFlightDuration(): int {
         return $this->getExplosionsTag()->getByte("Flight", 1);
     }
 
-    public function getRandomizedFlightDuration(): int
-    {
+    public function getRandomizedFlightDuration(): int {
         return ($this->getFlightDuration() + 1) * 10 + mt_rand(0, 5) + mt_rand(0, 6);
     }
 
-    public function setFlightDuration(int $duration): void
-    {
+    public function setFlightDuration(int $duration): void {
         $this->getExplosionsTag()->setByte("Flight", $duration);
     }
 
@@ -62,7 +56,7 @@ class Fireworks extends Item
     {
         $tag = $this->getExplosionsTag();
         $explosions = $tag->getListTag("Explosions");
-        if ($explosions === null) {
+        if($explosions === null){
             $tag->setTag("Explosions", $explosions = new ListTag());
         }
 
@@ -84,33 +78,20 @@ class Fireworks extends Item
         return $tag;
     }
 
-    public function onClickAir(Player $player, Vector3 $directionVector): ItemUseResult
+    public function onInteractBlock(Player $player, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, array &$returnedItems): ItemUseResult
     {
-        if ($this->checkElytra($player)) {
-            if ($player->hasFiniteResources()) $this->pop(1);
-            $player->setMotion($player->getDirectionVector()->multiply(1.5));
-            Session::playSound($player, "firework.launch");
-            return ItemUseResult::SUCCESS();
-        }
-        return ItemUseResult::FAIL();
+        $entity = new FireworksRocket(Location::fromObject($blockReplace->getPosition()->add(0.5, 0, 0.5), $player->getWorld(), lcg_value() * 360, 90), $this);
+
+        $this->pop();
+        $entity->spawnToAll();
+        return ItemUseResult::SUCCESS();
     }
 
-    public function onInteractBlock(Player $player, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector): ItemUseResult
-    {
-        if (!$this->checkElytra($player)) {
-            $entity = new FireworksRocket(Location::fromObject($blockReplace->getPosition()->add(0.5, 0, 0.5), $player->getWorld(), lcg_value() * 360, 90), $this);
-            $entity->spawnToAll();
-            $this->pop(1);
-            return ItemUseResult::SUCCESS();
+    public function onClickAir(Player $player, Vector3 $clickVector, array &$returnedItems): ItemUseResult{
+        if($player->isGliding()){
+            $this->pop();
         }
-        return ItemUseResult::FAIL();
+        return ItemUseResult::SUCCESS();
     }
 
-    public function checkElytra(Player $player): bool
-    {
-        if ($player->getArmorInventory()->getChestplate() instanceof Elytra && $player->isGliding()) {
-            return true;
-        }
-        return false;
-    }
 }
